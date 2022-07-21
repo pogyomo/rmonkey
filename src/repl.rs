@@ -1,6 +1,6 @@
 use std::io::{stdin, Stdin, stdout, Write};
 
-use crate::lexer::Lexer;
+use crate::{lexer::Lexer, parser::Parser, ast::Node};
 
 pub struct Repl {
     cin: Stdin,
@@ -18,8 +18,15 @@ impl Repl {
 
             let mut buf = String::new();
             self.cin.read_line(&mut buf).unwrap();
+            /*
             for token in Lexer::new(buf.as_str()).tokenize().iter() {
-                println!("{:?}", token);
+                println!("[Token: {:?}, Literal: {:?}]", token, token.literal_of());
+            }
+            */
+            let lexer  = Lexer::new(buf.as_str());
+            let parser = Parser::new(lexer.tokenize());
+            for stmt in parser.parse().statements.iter() {
+                println!("{}", stmt.string());
             }
         }
     }

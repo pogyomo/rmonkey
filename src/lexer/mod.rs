@@ -1,7 +1,7 @@
 mod test;
 
 use std::{cell::Cell, collections::HashMap};
-use crate::token::{Token, TokenType};
+use crate::token::Token;
 use once_cell::sync::Lazy;
 
 pub struct Lexer<'a> {
@@ -41,13 +41,13 @@ impl<'a> Lexer<'a> {
     fn ident_or_keyword(&self) -> Option<Token> {
         static KEYWORD: Lazy<HashMap<&str, Token>> = Lazy::new(|| {
             HashMap::from([
-                ("fn",     Token::new(TokenType::Function, "fn")),
-                ("let",    Token::new(TokenType::Let,      "let")),
-                ("true",   Token::new(TokenType::True,     "true")),
-                ("false",  Token::new(TokenType::False,    "false")),
-                ("if",     Token::new(TokenType::If,       "if")),
-                ("else",   Token::new(TokenType::Else,     "else")),
-                ("return", Token::new(TokenType::Return,   "return")),
+                ("fn",     Token::Function),
+                ("let",    Token::Let),
+                ("true",   Token::True),
+                ("false",  Token::False),
+                ("if",     Token::If),
+                ("else",   Token::Else),
+                ("return", Token::Return),
             ])
         });
 
@@ -57,7 +57,7 @@ impl<'a> Lexer<'a> {
             });
             match KEYWORD.get(body.to_lowercase().as_str()) {
                 Some(token) => Some(*token),
-                None        => Some(Token::new(TokenType::Ident, body)),
+                None        => Some(Token::Ident(body)),
             }
         } else {
             None
@@ -67,7 +67,7 @@ impl<'a> Lexer<'a> {
     fn integer(&self) -> Option<Token> {
         if self.input.get().chars().next()?.is_ascii_digit() {
             let body = self.trim_start_with(|c: char| c.is_ascii_digit());
-            Some(Token::new(TokenType::Int, body))
+            Some(Token::Int(body))
         } else {
             None
         }
@@ -79,31 +79,31 @@ impl<'a> Lexer<'a> {
             '=' => {
                 if self.input.get().chars().nth(1)? == '=' {
                     chars.next();
-                    Some(Token::new(TokenType::Eq,     "=="))
+                    Some(Token::Eq)
                 } else {
-                    Some(Token::new(TokenType::Assign, "="))
+                    Some(Token::Assign)
                 }
             }
             '!' => {
                 if self.input.get().chars().nth(1)? == '=' {
                     chars.next();
-                    Some(Token::new(TokenType::NotEq, "!="))
+                    Some(Token::NotEq)
                 } else {
-                    Some(Token::new(TokenType::Bang,  "!"))
+                    Some(Token::Bang)
                 }
             }
-            '+' => Some(Token::new(TokenType::Plus,          "+")),
-            '-' => Some(Token::new(TokenType::Minus,         "-")),
-            '*' => Some(Token::new(TokenType::Asterisk,      "*")),
-            '/' => Some(Token::new(TokenType::Slash,         "/")),
-            '<' => Some(Token::new(TokenType::LT,            "<")),
-            '>' => Some(Token::new(TokenType::GT,            ">")),
-            ',' => Some(Token::new(TokenType::Comma,         ",")),
-            ';' => Some(Token::new(TokenType::Semicolon,     ";")),
-            '(' => Some(Token::new(TokenType::LParenthesis,  "(")),
-            ')' => Some(Token::new(TokenType::RParenthesis,  ")")),
-            '{' => Some(Token::new(TokenType::LCurlyBracket, "{")),
-            '}' => Some(Token::new(TokenType::RCurlyBracket, "}")),
+            '+' => Some(Token::Plus),
+            '-' => Some(Token::Minus),
+            '*' => Some(Token::Asterisk),
+            '/' => Some(Token::Slash),
+            '<' => Some(Token::LT),
+            '>' => Some(Token::GT),
+            ',' => Some(Token::Comma),
+            ';' => Some(Token::Semicolon),
+            '(' => Some(Token::LParenthesis),
+            ')' => Some(Token::RParenthesis),
+            '{' => Some(Token::LCurlyBracket),
+            '}' => Some(Token::RCurlyBracket),
             _   => return None,
         };
         self.input.set(chars.as_str());
