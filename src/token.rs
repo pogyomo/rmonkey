@@ -1,8 +1,20 @@
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum Token<'a> {
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Token<'a> {
+    pub kind: TokenKind,
+    pub literal: Option<&'a str>,
+}
+
+impl<'a> Token<'a> {
+    pub fn new(kind: TokenKind, literal: Option<&str>) -> Token<'_> {
+        Token { kind, literal }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum TokenKind {
     // Token with literal
-    Ident(&'a str),
-    Int(&'a str),
+    Ident,
+    Int,
 
     // One-character token
     Assign,        // '='
@@ -32,38 +44,4 @@ pub enum Token<'a> {
     If,       // 'if'
     Else,     // 'else'
     Return,   // 'return'
-}
-
-impl<'a> Token<'a> {
-    pub fn literal_of(&self) -> &str {
-        match self {
-            Token::Ident(s) | Token::Int(s) => s,
-
-            Token::Assign        => "=",
-            Token::Plus          => "+",
-            Token::Minus         => "-",
-            Token::Bang          => "!",
-            Token::Asterisk      => "*",
-            Token::Slash         => "/",
-            Token::LT            => "<",
-            Token::GT            => ">",
-            Token::Comma         => ",",
-            Token::Semicolon     => ";",
-            Token::LParenthesis  => "(",
-            Token::RParenthesis  => ")",
-            Token::LCurlyBracket => "(",
-            Token::RCurlyBracket => ")",
-
-            Token::Eq            => "==",
-            Token::NotEq         => "!=",
-
-            Token::Function      => "fn",
-            Token::Let           => "let",
-            Token::True          => "true",
-            Token::False         => "false",
-            Token::If            => "if",
-            Token::Else          => "else",
-            Token::Return        => "return",
-        }
-    }
 }

@@ -114,7 +114,7 @@ fn test_lexer() {
     } else {
         for (target, test) in tokens.iter().zip(&tests) {
             assert!(target == test,
-                    "Assertion falied: expect {:?}, but found {:?}",
+                    "Assertion failed: expect {:?}, got {:?}",
                     test, target);
         }
     }

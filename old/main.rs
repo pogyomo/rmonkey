@@ -1,8 +1,8 @@
 mod token;
 mod lexer;
-mod parser;
 mod repl;
 mod ast;
+mod parser;
 
 use crate::repl::Repl;
 

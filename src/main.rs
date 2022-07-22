@@ -1,13 +1,21 @@
 mod token;
 mod lexer;
-mod repl;
 mod ast;
 mod parser;
 
-use crate::repl::Repl;
+use crate::ast::*;
 
 fn main() {
-    println!("This is rmonkey programming language!");
-    println!("Feel free to type in commands");
-    Repl::new().start();
+    let lst = Statement::Let(LetStatement {
+        ident: Identifier {
+            name: "name".to_string(),
+        },
+        rhs_exp: PrefixExpression {
+            rhs_exp: Expression::Prefix(PrefixExpression {
+                rhs_exp: Expression::Integer(Integer {
+                    value: 0
+                })
+            })
+        }
+    });
 }

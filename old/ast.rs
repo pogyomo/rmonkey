@@ -1,4 +1,5 @@
 use crate::token::Token;
+use std::rc::Rc;
 
 pub trait Node {
     fn literal(&self) -> &str;
@@ -33,7 +34,7 @@ impl<'a> Program<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Statement<'a> {
     LetStatement{
         token: Token<'a>,
@@ -53,9 +54,9 @@ pub enum Statement<'a> {
 impl<'a> Node for Statement<'a> {
     fn literal(&self) -> &str {
         match self {
-            Self::LetStatement{ token, .. }        => token.name(),
-            Self::ReturnStatement{ token, .. }     => token.name(),
-            Self::ExpressionStatement{ token, .. } => token.name(),
+            Self::LetStatement{ token, .. }        => token.literal_of(),
+            Self::ReturnStatement{ token, .. }     => token.literal_of(),
+            Self::ExpressionStatement{ token, .. } => token.literal_of(),
         }
     }
 
@@ -65,7 +66,7 @@ impl<'a> Node for Statement<'a> {
             Self::LetStatement { ident, expression, .. } => {
                 ret.push_str(self.literal());
                 ret.push(' ');
-                ret.push_str(ident.literal());
+                ret.push_str(ident.string().as_str());
                 ret.push_str(" = ");
                 ret.push_str(expression.string().as_str());
                 ret.push(';');
@@ -85,10 +86,39 @@ impl<'a> Node for Statement<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Expression<'a> {
-    Identifier{
+    Identifier {
         token: Token<'a>,
+    },
+    Integer {
+        token: Token<'a>,
+        value: i64,
+    },
+    PrefixExpression {
+        token: Token<'a>,
+        right: Rc<Expression<'a>>,
+    },
+    InfixExpression {
+        token: Token<'a>,
+        left:  Rc<Expression<'a>>,
+        right: Rc<Expression<'a>>,
+    },
+    Boolean {
+        token: Token<'a>,
+        value: bool,
+    },
+    IfExpression {
+        token: Token<'a>,
+        condition: Rc<Expression<'a>>,
+
+        // These two must be BlockStatement
+        consequence: Rc<Expression<'a>>,
+        alternative: Option<Rc<Expression<'a>>>,
+    },
+    BlockStatement {
+        token: Token<'a>,
+        statements: Vec<Statement<'a>>,
     },
     Dummy,
 }
@@ -96,7 +126,13 @@ pub enum Expression<'a> {
 impl<'a> Node for Expression<'a> {
     fn literal(&self) -> &str {
         match self {
-            Self::Identifier{ token, .. } => token.name(),
+            Self::Identifier { token, .. }       => token.literal_of(),
+            Self::Integer { token, .. }          => token.literal_of(),
+            Self::PrefixExpression { token, .. } => token.literal_of(),
+            Self::InfixExpression { token, .. }  => token.literal_of(),
+            Self::Boolean { token, .. }          => token.literal_of(),
+            Self::IfExpression { token, .. }     => token.literal_of(),
+            Self::BlockStatement { token, .. }   => token.literal_of(),
             _ => "",
         }
     }
@@ -104,6 +140,47 @@ impl<'a> Node for Expression<'a> {
     fn string(&self) -> String {
         match self {
             Self::Identifier { .. } => self.literal().to_string(),
+            Self::Integer { .. }    => self.literal().to_string(),
+            Self::Boolean { .. }    => self.literal().to_string(),
+            Self::PrefixExpression { right, .. } => {
+                let mut ret = String::new();
+                ret.push('(');
+                ret.push_str(self.literal());
+                ret.push(' ');
+                ret.push_str(right.string().as_str());
+                ret.push(')');
+                ret
+            }
+            Self::InfixExpression { left, right, .. } => {
+                let mut ret = String::new();
+                ret.push('(');
+                ret.push_str(left.string().as_str());
+                ret.push(' ');
+                ret.push_str(self.literal());
+                ret.push(' ');
+                ret.push_str(right.string().as_str());
+                ret.push(')');
+                ret
+            }
+            Self::IfExpression { condition, consequence, alternative, .. } => {
+                let mut ret = String::new();
+                ret.push_str(self.literal());
+                ret.push_str(condition.string().as_str());
+                ret.push(' ');
+                ret.push_str(consequence.string().as_str());
+                if let Some(exp) = alternative {
+                    ret.push_str("else ");
+                    ret.push_str(exp.string().as_str());
+                }
+                ret
+            }
+            Self::BlockStatement { statements, .. } => {
+                let mut ret = String::new();
+                for stmt in statements.iter() {
+                    ret.push_str(stmt.string().as_str());
+                }
+                ret
+            }
             Self::Dummy => "Dummy Expression (Will be removed)".to_string(),
         }
     }

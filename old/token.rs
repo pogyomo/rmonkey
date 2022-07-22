@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum Token<'a> {
+    // Token with literal
     Ident(&'a str),
     Int(&'a str),
 
@@ -34,10 +35,10 @@ pub enum Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub fn name(&self) -> &str {
+    pub fn literal_of(&self) -> &str {
         match self {
-            Token::Ident(name)   => name,
-            Token::Int(value)    => value,
+            Token::Ident(s) | Token::Int(s) => s,
+
             Token::Assign        => "=",
             Token::Plus          => "+",
             Token::Minus         => "-",
@@ -50,10 +51,12 @@ impl<'a> Token<'a> {
             Token::Semicolon     => ";",
             Token::LParenthesis  => "(",
             Token::RParenthesis  => ")",
-            Token::LCurlyBracket => "{",
-            Token::RCurlyBracket => "}",
+            Token::LCurlyBracket => "(",
+            Token::RCurlyBracket => ")",
+
             Token::Eq            => "==",
             Token::NotEq         => "!=",
+
             Token::Function      => "fn",
             Token::Let           => "let",
             Token::True          => "true",
