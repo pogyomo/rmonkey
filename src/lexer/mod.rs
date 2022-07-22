@@ -18,6 +18,7 @@ impl<'a> Lexer<'a> {
         while let Some(token) = self.token() {
             ret.push(token);
         }
+        ret.push(Token::new(TokenKind::Eof, ""));
         ret
     }
 }
@@ -41,13 +42,13 @@ impl <'a> Lexer<'a> {
     fn ident_or_keyword(&self) -> Option<Token<'_>> {
         static KEYWORD: Lazy<HashMap<&str, Token>> = Lazy::new(|| {
             HashMap::from([
-                ("fn",     Token::new(TokenKind::Function, None)),
-                ("let",    Token::new(TokenKind::Let,      None)),
-                ("true",   Token::new(TokenKind::True,     None)),
-                ("false",  Token::new(TokenKind::False,    None)),
-                ("if",     Token::new(TokenKind::If,       None)),
-                ("else",   Token::new(TokenKind::Else,     None)),
-                ("return", Token::new(TokenKind::Return,   None)),
+                ("fn",     Token::new(TokenKind::Function, "")),
+                ("let",    Token::new(TokenKind::Let,      "")),
+                ("true",   Token::new(TokenKind::True,     "")),
+                ("false",  Token::new(TokenKind::False,    "")),
+                ("if",     Token::new(TokenKind::If,       "")),
+                ("else",   Token::new(TokenKind::Else,     "")),
+                ("return", Token::new(TokenKind::Return,   "")),
             ])
         });
 
@@ -57,7 +58,7 @@ impl <'a> Lexer<'a> {
             });
             match KEYWORD.get(body.to_lowercase().as_str()) {
                 Some(token) => Some(*token),
-                None        => Some(Token::new(TokenKind::Ident, Some(body))),
+                None        => Some(Token::new(TokenKind::Ident, body)),
             }
         } else {
             None
@@ -67,7 +68,7 @@ impl <'a> Lexer<'a> {
     fn integer(&self) -> Option<Token> {
         if self.input.get().chars().next()?.is_ascii_digit() {
             let body = self.trim_start_with(|c: char| c.is_ascii_digit());
-            Some(Token::new(TokenKind::Int, Some(body)))
+            Some(Token::new(TokenKind::Int, body))
         } else {
             None
         }
@@ -79,31 +80,31 @@ impl <'a> Lexer<'a> {
             '=' => {
                 if self.input.get().chars().nth(1)? == '=' {
                     chars.next();
-                    Some(Token::new(TokenKind::Eq,     None))
+                    Some(Token::new(TokenKind::Eq,     ""))
                 } else {
-                    Some(Token::new(TokenKind::Assign, None))
+                    Some(Token::new(TokenKind::Assign, ""))
                 }
             }
             '!' => {
                 if self.input.get().chars().nth(1)? == '=' {
                     chars.next();
-                    Some(Token::new(TokenKind::NotEq, None))
+                    Some(Token::new(TokenKind::NotEq, ""))
                 } else {
-                    Some(Token::new(TokenKind::Bang,  None))
+                    Some(Token::new(TokenKind::Bang,  ""))
                 }
             }
-            '+' => Some(Token::new(TokenKind::Plus,          None)),
-            '-' => Some(Token::new(TokenKind::Minus,         None)),
-            '*' => Some(Token::new(TokenKind::Asterisk,      None)),
-            '/' => Some(Token::new(TokenKind::Slash,         None)),
-            '<' => Some(Token::new(TokenKind::LT,            None)),
-            '>' => Some(Token::new(TokenKind::GT,            None)),
-            ',' => Some(Token::new(TokenKind::Comma,         None)),
-            ';' => Some(Token::new(TokenKind::Semicolon,     None)),
-            '(' => Some(Token::new(TokenKind::LParenthesis,  None)),
-            ')' => Some(Token::new(TokenKind::RParenthesis,  None)),
-            '{' => Some(Token::new(TokenKind::LCurlyBracket, None)),
-            '}' => Some(Token::new(TokenKind::RCurlyBracket, None)),
+            '+' => Some(Token::new(TokenKind::Plus,          "")),
+            '-' => Some(Token::new(TokenKind::Minus,         "")),
+            '*' => Some(Token::new(TokenKind::Asterisk,      "")),
+            '/' => Some(Token::new(TokenKind::Slash,         "")),
+            '<' => Some(Token::new(TokenKind::LT,            "")),
+            '>' => Some(Token::new(TokenKind::GT,            "")),
+            ',' => Some(Token::new(TokenKind::Comma,         "")),
+            ';' => Some(Token::new(TokenKind::Semicolon,     "")),
+            '(' => Some(Token::new(TokenKind::LParenthesis,  "")),
+            ')' => Some(Token::new(TokenKind::RParenthesis,  "")),
+            '{' => Some(Token::new(TokenKind::LCurlyBracket, "")),
+            '}' => Some(Token::new(TokenKind::RCurlyBracket, "")),
             _   => return None,
         };
         self.input.set(chars.as_str());

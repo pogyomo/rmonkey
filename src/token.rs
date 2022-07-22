@@ -1,17 +1,20 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Token<'a> {
     pub kind: TokenKind,
-    pub literal: Option<&'a str>,
+    pub literal: &'a str,
 }
 
 impl<'a> Token<'a> {
-    pub fn new(kind: TokenKind, literal: Option<&str>) -> Token<'_> {
+    pub fn new(kind: TokenKind, literal: &str) -> Token<'_> {
         Token { kind, literal }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
+    // Special token
+    Eof,
+
     // Token with literal
     Ident,
     Int,
