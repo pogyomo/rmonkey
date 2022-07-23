@@ -1,33 +1,61 @@
 use std::io::{stdin, Stdin, stdout, Write};
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{lexer::Lexer, parser::Parser, ast::Node};
+
+pub enum ReplExecKind {
+    Token,
+    Ast,
+    String,
+}
 
 pub struct Repl {
     cin: Stdin,
 }
 
 impl Repl {
-    pub fn new() -> Repl {
+    pub fn new(cin: Stdin) -> Repl {
         Repl { cin: stdin() }
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self, kind: ReplExecKind) {
         loop {
             print!(">> ");
             stdout().flush().unwrap();
 
             let mut buf = String::new();
             self.cin.read_line(&mut buf).unwrap();
-            /*
-            for token in Lexer::new(buf.as_str()).tokenize().iter() {
-                println!("[Token: {:?}, Literal: {:?}]", token, token.literal_of());
-            }
-            */
             let lexer  = Lexer::new(buf.as_str());
-            let parser = Parser::new(lexer.tokenize());
-            let program = parser.parse().unwrap_or_else(|err| panic!("{}", err));
-            for stmt in program.statements.iter() {
-                println!("{:#?}", stmt);
+
+            match kind {
+                ReplExecKind::Token => {
+                    println!("{:#?}", lexer.tokenize());
+                }
+                ReplExecKind::Ast => {
+                    let parser = Parser::new(lexer.tokenize());
+                    match parser.parse() {
+                        Ok(prg) => {
+                            for stmt in prg.statements.iter() {
+                                println!("{:#?}", stmt);
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("{}", err);
+                        }
+                    }
+                }
+                ReplExecKind::String => {
+                    let parser = Parser::new(lexer.tokenize());
+                    match parser.parse() {
+                        Ok(prg) => {
+                            for stmt in prg.statements.iter() {
+                                println!("{}", stmt.string());
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("{}", err);
+                        }
+                    }
+                }
             }
         }
     }

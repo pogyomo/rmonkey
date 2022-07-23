@@ -8,7 +8,8 @@ use crate::{
     },
     ast::{
         Program, Statement, LetStatement, Identifier, Expression, RetStatement, ExpStatement,
-        Integer, PrefixExpression, InfixExpression, Boolean, IfExpression, BlkStatement
+        Integer, PrefixExpression, InfixExpression, Boolean, IfExpression, BlkStatement,
+        FunctionExpression, CallExpression
     },
 };
 use self::{error::ParseError, order::PriorityOrder};
@@ -59,23 +60,19 @@ impl<'a> Parser<'a> {
             Err(err)?;
         }
 
-        // TODO: We need to parse expression in this place
-        while self.curr_token()?.kind != TokenKind::Semicolon {
-            self.next_token(); // Skip expression
-        }
+        self.next_token();
+        let left_exp = self.expression(PriorityOrder::Lowest)?;
+        self.expect_peek(TokenKind::Semicolon)?;
 
-        let ret = LetStatement::new(Identifier { name }, Expression::Dummy);
-        Ok(ret)
+        Ok(LetStatement::new(Identifier::new(name), left_exp))
     }
 
     fn ret_statement(&self) -> Result<RetStatement, Box<dyn Error>> {
-        // TODO: We need to parse expression in this place
-        while self.curr_token()?.kind != TokenKind::Semicolon {
-            self.next_token(); // Skip expression
-        }
+        self.next_token();
+        let exp = self.expression(PriorityOrder::Lowest)?;
+        self.expect_peek(TokenKind::Semicolon)?;
 
-        let ret = RetStatement::new(Expression::Dummy);
-        Ok(ret)
+        Ok(RetStatement::new(exp))
     }
 
     fn exp_statement(&self) -> Result<Statement, Box<dyn Error>> {
@@ -83,7 +80,6 @@ impl<'a> Parser<'a> {
 
         self.expect_peek(TokenKind::Semicolon)?;
         Ok(Statement::Exp(ExpStatement::new(exp)))
-
     }
 
     fn blk_statement(&self) -> Result<BlkStatement, Box<dyn Error>> {
@@ -101,12 +97,19 @@ impl<'a> Parser<'a> {
 
     fn expression(&self, order: PriorityOrder) -> Result<Expression, Box<dyn Error>> {
         let mut left = match self.curr_token()?.kind {
-            TokenKind::Ident => self.identifier()?,
-            TokenKind::Int   => self.integer()?,
+            TokenKind::Ident => Expression::Ident(self.identifier()?),
+            TokenKind::Int   => Expression::Int(self.integer()?),
+            TokenKind::True
+            | TokenKind::False => Expression::Bool(self.boolean()?),
+
             TokenKind::LParenthesis => self.group()?,
-            TokenKind::True | TokenKind::False => self.boolean()?,
-            TokenKind::Bang | TokenKind::Minus => self.prefix()?,
-            TokenKind::If => self.if_expression()?,
+
+            TokenKind::Bang 
+            | TokenKind::Minus => Expression::Prefix(Box::new(self.prefix()?)),
+
+            TokenKind::If       => Expression::If(self.if_expression()?),
+            TokenKind::Function => Expression::Func(self.func_expression()?),
+
             kind => Err(ParseError::NoSuchExpressionStartWith(kind))?,
         };
 
@@ -121,7 +124,11 @@ impl<'a> Parser<'a> {
                 | TokenKind::LT
                 | TokenKind::GT => {
                     self.next_token();
-                    left = self.infix(left)?;
+                    left = Expression::Infix(Box::new(self.infix(left)?));
+                }
+                TokenKind::LParenthesis => {
+                    self.next_token();
+                    left = Expression::Call(self.call_expression(left)?);
                 }
                 _ => {
                     return Ok(left);
@@ -132,30 +139,30 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    fn identifier(&self) -> Result<Expression, Box<dyn Error>> {
+    fn identifier(&self) -> Result<Identifier, Box<dyn Error>> {
         let token = self.curr_token()?;
         let name  = match token.kind {
             TokenKind::Ident => token.literal.to_string(),
             kind => Err(ParseError::InvalidTokenFound(vec![TokenKind::Ident], kind))?,
         };
 
-        Ok(Expression::Ident(Identifier::new(name)))
+        Ok(Identifier::new(name))
     }
 
-    fn integer(&self) -> Result<Expression, Box<dyn Error>> {
+    fn integer(&self) -> Result<Integer, Box<dyn Error>> {
         let token = self.curr_token()?;
         let value = match token.kind {
             TokenKind::Int => token.literal.parse()?,
             _ => Err(ParseError::InvalidTokenFound(vec![TokenKind::Int], token.kind))?,
         };
 
-        Ok(Expression::Int(Integer::new(value)))
+        Ok(Integer::new(value))
     }
 
-    fn boolean(&self) -> Result<Expression, Box<dyn Error>> {
+    fn boolean(&self) -> Result<Boolean, Box<dyn Error>> {
         match self.curr_token()?.kind {
-            TokenKind::True  => Ok(Expression::Bool(Boolean::new(true))),
-            TokenKind::False => Ok(Expression::Bool(Boolean::new(false))),
+            TokenKind::True  => Ok(Boolean::new(true)),
+            TokenKind::False => Ok(Boolean::new(false)),
             kind => {
                 Err(
                     ParseError::InvalidTokenFound(
@@ -167,27 +174,22 @@ impl<'a> Parser<'a> {
     }
 
     // 'op' expression
-    fn prefix(&self) -> Result<Expression, Box<dyn Error>> {
+    fn prefix(&self) -> Result<PrefixExpression, Box<dyn Error>> {
         let operator = self.curr_token()?.kind;
         self.next_token();
         let rhs_exp  = self.expression(PriorityOrder::Prefix)?;
 
-        let ret = Expression::Prefix(
-            Box::new(
-                PrefixExpression::new(operator, rhs_exp)
-            )
-        );
-        Ok(ret)
+        Ok(PrefixExpression::new(operator, rhs_exp))
     }
 
     // expression 'op' expression
-    fn infix(&self, left: Expression) -> Result<Expression, Box<dyn Error>> {
+    fn infix(&self, left: Expression) -> Result<InfixExpression, Box<dyn Error>> {
         let operator = self.curr_token()?.kind;
         let order = self.curr_order()?;
         self.next_token();
         let right = self.expression(order)?;
 
-        Ok(Expression::Infix(Box::new(InfixExpression::new(operator, left, right))))
+        Ok(InfixExpression::new(operator, left, right))
     }
 
     // '(' expression ')''
@@ -204,7 +206,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn if_expression(&self) -> Result<Expression, Box<dyn Error>> {
+    fn if_expression(&self) -> Result<IfExpression, Box<dyn Error>> {
         let kind = self.peek_token()?.kind;
         if !self.expect_peek(TokenKind::LParenthesis)? {
             Err(ParseError::InvalidTokenFound(vec![TokenKind::LParenthesis], kind))?
@@ -235,7 +237,80 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(Expression::If(IfExpression::new(cond, cons, alt)))
+        Ok(IfExpression::new(cond, cons, alt))
+    }
+
+    fn func_expression(&self) -> Result<FunctionExpression, Box<dyn Error>> {
+        let kind = self.peek_token()?.kind;
+        if !self.expect_peek(TokenKind::LParenthesis)? {
+            Err(ParseError::InvalidTokenFound(vec![TokenKind::LParenthesis], kind))?
+        }
+
+        let params = self.func_paramators()?;
+
+        let kind = self.peek_token()?.kind;
+        if !self.expect_peek(TokenKind::LCurlyBracket)? {
+            Err(ParseError::InvalidTokenFound(vec![TokenKind::LCurlyBracket], kind))?
+        }
+
+        let body = self.blk_statement()?;
+
+        Ok(FunctionExpression::new(params, body))
+    }
+
+    fn func_paramators(&self) -> Result<Vec<Identifier>, Box<dyn Error>> {
+        let mut ret = Vec::new();
+
+        if self.peek_token_is(TokenKind::RParenthesis)? {
+            self.next_token();
+            return Ok(ret);
+        } else {
+            self.next_token();
+        }
+
+        ret.push(self.identifier()?);
+        while self.peek_token_is(TokenKind::Comma)? {
+            self.next_token();
+            self.next_token();
+            ret.push(self.identifier()?);
+        }
+
+        let kind = self.peek_token()?.kind;
+        if !self.expect_peek(TokenKind::RParenthesis)? {
+            Err(ParseError::InvalidTokenFound(vec![TokenKind::RParenthesis], kind))?
+        } else {
+            Ok(ret)
+        }
+    }
+
+    fn call_expression(&self, left: Expression) -> Result<CallExpression, Box<dyn Error>> {
+        let args = self.call_arguments()?;
+        Ok(CallExpression::new(left, args))
+    }
+
+    fn call_arguments(&self) -> Result<Vec<Expression>, Box<dyn Error>> {
+        let mut ret = Vec::new();
+
+        if self.peek_token_is(TokenKind::RParenthesis)? {
+            self.next_token();
+            return Ok(ret);
+        } else {
+            self.next_token();
+        }
+
+        ret.push(self.expression(PriorityOrder::Lowest)?);
+        while self.peek_token_is(TokenKind::Comma)? {
+            self.next_token();
+            self.next_token();
+            ret.push(self.expression(PriorityOrder::Lowest)?);
+        }
+
+        let kind = self.peek_token()?.kind;
+        if !self.expect_peek(TokenKind::RParenthesis)? {
+            Err(ParseError::InvalidTokenFound(vec![TokenKind::RParenthesis], kind))?
+        } else {
+            Ok(ret)
+        }
     }
 }
 
@@ -288,6 +363,7 @@ impl<'a> Parser<'a> {
             TokenKind::LT       | TokenKind::GT    => PriorityOrder::LessGreater,
             TokenKind::Plus     | TokenKind::Minus => PriorityOrder::Sum,
             TokenKind::Asterisk | TokenKind::Slash => PriorityOrder::Product,
+            TokenKind::LParenthesis                => PriorityOrder::Call,
             _ => PriorityOrder::Lowest,
         }
     }

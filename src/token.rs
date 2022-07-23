@@ -8,6 +8,40 @@ impl<'a> Token<'a> {
     pub fn new(kind: TokenKind, literal: &str) -> Token<'_> {
         Token { kind, literal }
     }
+
+    pub fn literal(&self) -> &str {
+        match self.kind {
+            TokenKind::Eof => "eof",
+
+            TokenKind::Ident | TokenKind::Int => self.literal,
+
+            TokenKind::Assign        => "=",
+            TokenKind::Plus          => "+",
+            TokenKind::Minus         => "-",
+            TokenKind::Bang          => "!",
+            TokenKind::Asterisk      => "*",
+            TokenKind::Slash         => "/",
+            TokenKind::LT            => "<",
+            TokenKind::GT            => ">",
+            TokenKind::Comma         => ",",
+            TokenKind::Semicolon     => ";",
+            TokenKind::LParenthesis  => "(",
+            TokenKind::RParenthesis  => ")",
+            TokenKind::LCurlyBracket => "{",
+            TokenKind::RCurlyBracket => "}",
+
+            TokenKind::Eq    => "==",
+            TokenKind::NotEq => "!=",
+
+            TokenKind::Function => "fn",
+            TokenKind::Let      => "let",
+            TokenKind::True     => "true",
+            TokenKind::False    => "false",
+            TokenKind::If       => "if",
+            TokenKind::Else     => "else",
+            TokenKind::Return   => "return",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

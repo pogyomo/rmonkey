@@ -5,7 +5,8 @@ use crate::{
     parser::Parser, 
     ast::{
         Program, Statement, Expression, Identifier, Integer, PrefixExpression,
-        InfixExpression, Boolean, IfExpression, BlkStatement, ExpStatement
+        InfixExpression, Boolean, IfExpression, BlkStatement, ExpStatement,
+        FunctionExpression, Node,
     },
     token::TokenKind
 };
@@ -15,14 +16,14 @@ fn test_let_statements() {
     let input = "
         let x = 5;
         let y = 10;
-        let foobar = 838383;";
+        let z = 1 * (2 + 3);";
 
     let program = parse_input(input);
     test_program_length(&program, 3);
 
-    let tests = vec!["x", "y", "foobar"];
+    let tests = vec!["let x = 5;", "let y = 10;", "let z = (1 * (2 + 3));"];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_let_statement(stmt, &test.to_string());
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -31,13 +32,14 @@ fn test_ret_statements() {
     let input = "
         return 5;
         return 10;
-        return add(1, 2);";
+        return 1 * (2 + 3);";
 
     let program = parse_input(input);
     test_program_length(&program, 3);
 
-    for stmt in program.statements.iter() {
-        test_ret_statement(stmt);
+    let tests = vec!["return 5;", "return 10;", "return (1 * (2 + 3));"];
+    for (stmt, test) in program.statements.iter().zip(&tests) {
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -53,11 +55,7 @@ fn test_identifier_expression() {
 
     let tests = vec!["foo", "bar", "foobar"];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_exp_statement(
-            stmt,
-            &Expression::Ident(Identifier {
-                name: test.to_string()
-            }));
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -71,16 +69,9 @@ fn test_integer_expression() {
     let program = parse_input(input);
     test_program_length(&program, 3);
 
-    let tests = vec![5, 10, 858585];
+    let tests = vec!["5", "10", "858585"];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_exp_statement(
-            stmt,
-            &Expression::Int(
-                Integer {
-                    value: *test
-                }
-            )
-        );
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -93,21 +84,9 @@ fn test_prefix_expression() {
     let program = parse_input(input);
     test_program_length(&program, 2);
 
-    let tests = vec![(TokenKind::Bang, 5), (TokenKind::Minus, 15)];
+    let tests = vec!["(!5)", "(-15)"];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_exp_statement(
-            stmt,
-            &Expression::Prefix(
-                Box::new(
-                    PrefixExpression {
-                        operator: test.0,
-                        rhs_exp: Expression::Int(
-                            Integer::new(test.1)
-                        )
-                    }
-                )
-            )
-        );
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -127,32 +106,17 @@ fn test_infix_expression() {
     test_program_length(&program, 8);
 
     let tests = vec![
-        (TokenKind::Plus,     5, 5),
-        (TokenKind::Minus,    5, 5),
-        (TokenKind::Asterisk, 5, 5),
-        (TokenKind::Slash,    5, 5),
-        (TokenKind::Eq,       5, 5),
-        (TokenKind::NotEq,    5, 5),
-        (TokenKind::LT,       5, 5),
-        (TokenKind::GT,       5, 5),
+        "(5 + 5)",
+        "(5 - 5)",
+        "(5 * 5)",
+        "(5 / 5)",
+        "(5 == 5)",
+        "(5 != 5)",
+        "(5 < 5)",
+        "(5 > 5)",
     ];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_exp_statement(
-            stmt,
-            &Expression::Infix(
-                Box::new(
-                    InfixExpression::new(
-                        test.0,
-                        Expression::Int(
-                            Integer::new(test.1)
-                        ),
-                        Expression::Int(
-                            Integer::new(test.2)
-                        )
-                    )
-                )
-            )
-        );
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -165,16 +129,9 @@ fn test_boolean_expression() {
     let program = parse_input(input);
     test_program_length(&program, 2);
 
-    let tests = vec![ true, false ];
+    let tests = vec!["true", "false"];
     for (stmt, test) in program.statements.iter().zip(&tests) {
-        test_exp_statement(
-            stmt,
-            &Expression::Bool(
-                Boolean::new(
-                    *test
-                )
-            )
-        );
+        test_exp_statement(stmt, test.to_string());
     }
 }
 
@@ -185,32 +142,7 @@ fn test_grouped_expression() {
     let program = parse_input(input);
     test_program_length(&program, 1);
 
-    test_exp_statement(
-        &program.statements[0],
-        &Expression::Infix(
-            Box::new(
-                InfixExpression::new(
-                    TokenKind::Asterisk,
-                    Expression::Infix(
-                        Box::new(
-                            InfixExpression::new(
-                                TokenKind::Plus,
-                                Expression::Int(
-                                    Integer::new(1)
-                                ),
-                                Expression::Int(
-                                    Integer::new(2)
-                                )
-                            )
-                        )
-                    ),
-                    Expression::Int(
-                        Integer::new(3)
-                    )
-                )
-            )
-        )
-    );
+    test_exp_statement(&program.statements[0], "((1 + 2) * 3)".to_string());
 }
 
 #[test]
@@ -221,38 +153,7 @@ fn test_if_expression() {
     test_program_length(&program, 1);
 
     let stmt = &program.statements[0];
-    test_exp_statement(
-        stmt,
-        &Expression::If(
-            IfExpression::new(
-                Expression::Infix(
-                    Box::new(
-                        InfixExpression {
-                            operator: TokenKind::LT,
-                            lhs_exp: Expression::Ident(
-                                Identifier::new("a".to_string())
-                            ),
-                            rhs_exp: Expression::Int(
-                                Integer::new(10)
-                            )
-                        }
-                    )
-                ),
-                BlkStatement::new(
-                    vec![
-                        Statement::Exp(
-                            ExpStatement::new(
-                                Expression::Ident(
-                                    Identifier::new("x".to_string())
-                                )
-                            )
-                        )
-                    ]
-                ),
-                None
-            )
-        )
-    );
+    test_exp_statement(stmt, "if ( (a < 10) ) { x }".to_string());
 }
 
 #[test]
@@ -263,50 +164,29 @@ fn test_if_else_expression() {
     test_program_length(&program, 1);
 
     let stmt = &program.statements[0];
-    test_exp_statement(
-        stmt,
-        &Expression::If(
-            IfExpression::new(
-                Expression::Infix(
-                    Box::new(
-                        InfixExpression {
-                            operator: TokenKind::LT,
-                            lhs_exp: Expression::Ident(
-                                Identifier::new("a".to_string())
-                            ),
-                            rhs_exp: Expression::Int(
-                                Integer::new(10)
-                            )
-                        }
-                    )
-                ),
-                BlkStatement::new(
-                    vec![
-                        Statement::Exp(
-                            ExpStatement::new(
-                                Expression::Ident(
-                                    Identifier::new("x".to_string())
-                                )
-                            )
-                        )
-                    ]
-                ),
-                Some(
-                    BlkStatement::new(
-                        vec![
-                            Statement::Exp(
-                                ExpStatement::new(
-                                    Expression::Ident(
-                                        Identifier::new("y".to_string())
-                                    )
-                                )
-                            )
-                        ]
-                    )
-                ),
-            )
-        )
-    );
+    test_exp_statement(stmt, "if ( (a < 10) ) { x } else { y }".to_string());
+}
+
+#[test]
+fn test_function_statement() {
+    let input = "fn(a, b) { a + b }";
+
+    let program = parse_input(input);
+    test_program_length(&program, 1);
+
+    let stmt = &program.statements[0];
+    test_exp_statement(stmt, "fn(a, b) { (a + b) }".to_string());
+}
+
+#[test]
+fn test_call_expression() {
+    let input = "add(10, a * (10 + b), c == d)";
+
+    let program = parse_input(input);
+    test_program_length(&program, 1);
+
+    let stmt = &program.statements[0];
+    test_exp_statement(stmt, "add(10, (a * (10 + b)), (c == d))".to_string());
 }
 
 fn test_let_statement(stmt: &Statement, name: &String) {
@@ -336,14 +216,9 @@ fn test_ret_statement(stmt: &Statement) {
     eprintln!("TODO: We need to check expression in return statement.");
 }
 
-fn test_exp_statement(stmt: &Statement, exp: &Expression) {
-    match stmt {
-        Statement::Exp(stmt) => {
-            if stmt.exp != *exp {
-                panic!("The statement is different: expect {:?}, got {:?}", exp, stmt.exp);
-            }
-        }
-        _ => panic!("This statement is not ExpStatement: got {:?}", stmt),
+fn test_exp_statement(stmt: &Statement, exp: String) {
+    if stmt.string() != exp {
+        panic!("The statement has different expression: expect {}, got {}", exp, stmt.string());
     }
 }
 
