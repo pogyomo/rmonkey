@@ -8,16 +8,16 @@ use crate::{
 use self::env::Env;
 use std::{cell::RefCell, rc::Rc};
 
-pub struct Eval {
-    env: Rc<RefCell<Env>>,
+pub struct Eval<'a> {
+    env: Rc<Env<'a>>,
 }
 
-impl Eval {
-    pub fn new(env: Rc<RefCell<Env>>) -> Eval {
-        Eval { env }
+impl<'a> Eval<'a> {
+    pub fn new(env: Env<'a>) -> Eval<'a> {
+        Eval { env: Rc::new(env) }
     }
 
-    pub fn eval(&mut self, prog: Program) -> Object {
+    pub fn eval(&mut self, prog: Program) -> Object<'a> {
         let mut ret: Object = Object::Null(Null::new());
         for stmt in prog.statements.into_iter() {
             ret = self.stmt(stmt);
@@ -31,14 +31,14 @@ impl Eval {
     }
 }
 
-impl Eval {
-    fn stmt(&mut self, stmt: Statement) -> Object {
+impl<'a> Eval<'a> {
+    fn stmt(&mut self, stmt: Statement) -> Object<'a> {
         match stmt {
             Statement::Exp(stmt) => self.expr(stmt.exp),
             Statement::Let(stmt) => {
                 let name    = stmt.ident.name.clone();
                 let rhs_exp = self.expr(stmt.rhs_exp);
-                self.env.borrow_mut().set(name, rhs_exp.clone());
+                self.env.set(name, rhs_exp.clone());
                 rhs_exp
             }
             Statement::Ret(stmt) => Object::Ret(ReturnValue::new(self.expr(stmt.exp))),
@@ -57,10 +57,10 @@ impl Eval {
         }
     }
 
-    fn expr(&mut self, expr: Expression) -> Object {
+    fn expr(&mut self, expr: Expression) -> Object<'a> {
         match expr {
             Expression::Ident(ident)   => {
-                match self.env.borrow().get(&ident.name) {
+                match self.env.get(&ident.name) {
                     Some(obj) => obj.clone(),
                     _ => Object::Err(ErrorObj::new(format!("Identifier not found: {}", ident.name)))
                 }
@@ -96,7 +96,7 @@ impl Eval {
             Expression::Func(func) => {
                 let params = func.params;
                 let body   = func.body;
-                Object::Func(Function::new(params, body, Rc::clone(&self.env)))
+                Object::Func(Function::new(params, body, Rc::new(Env::new())))
             }
             Expression::Call(call) => {
                 self.call_func(call)
@@ -104,7 +104,7 @@ impl Eval {
         }
     }
 
-    fn prefix(&self, op: TokenKind, right: Object) -> Object {
+    fn prefix(&self, op: TokenKind, right: Object<'a>) -> Object<'a> {
         match op {
             TokenKind::Bang => {
                 match right {
@@ -132,7 +132,7 @@ impl Eval {
         }
     }
 
-    fn infix(&self, op: TokenKind, left: Object, right: Object) -> Object {
+    fn infix(&self, op: TokenKind, left: Object, right: Object) -> Object<'a> {
         if let (Object::Int(left), Object::Int(right)) = (&left, &right) {
             let left  = left.value;
             let right = right.value;
@@ -184,7 +184,7 @@ impl Eval {
         )
     }
 
-    fn if_expr(&mut self, if_expr: IfExpression) -> Object {
+    fn if_expr(&mut self, if_expr: IfExpression) -> Object<'a> {
         let cond = self.expr(*if_expr.condition);
         if self.is_error(&cond) {
             return cond;
@@ -199,11 +199,10 @@ impl Eval {
         }
     }
 
-    fn call_func(&mut self, call: CallExpression) -> Object {
+    fn call_func(&mut self, call: CallExpression) -> Object<'a> {
         let func = match *call.ident {
             Expression::Ident(ident) => self.expr(Expression::Ident(ident)),
             Expression::Func(func)   => self.expr(Expression::Func(func)),
-            Expression::Call(call)   => self.expr(Expression::Call(call)),
             _ => return Object::Err(ErrorObj::new(format!("You can't call function from {:?}", call))),
         };
 
@@ -212,16 +211,6 @@ impl Eval {
             _ => return Object::Err(ErrorObj::new(format!("{:?} is not a function", func))),
         };
 
-        if call.args.len() != func.params.len() {
-            return Object::Err(
-                ErrorObj::new(
-                    format!(
-                        "Number of argument is less than or greater than: expect {}, got {}",
-                        func.params.len(), call.args.len()
-                    )
-                )
-            );
-        }
         let mut args = Vec::new();
         for (arg, ident) in call.args.iter().zip(func.params.iter()) {
             let name = ident.name.clone();
@@ -229,13 +218,13 @@ impl Eval {
             args.push((name, arg));
         }
 
-        let mut local_env = Env::new_with_outer(Rc::clone(&func.env));
+        let local_env = Env::new_with_outer(Rc::clone(&func.env));
         for (name, arg) in args.iter() {
             local_env.set(name.clone(), arg.clone());
         }
 
         let curr_env = Rc::clone(&self.env);
-        self.env = Rc::new(RefCell::new(local_env));
+        self.env = Rc::new(local_env);
         let ret = self.stmt(Statement::Blk(func.body));
         self.env = curr_env;
 
@@ -246,7 +235,7 @@ impl Eval {
     }
 }
 
-impl Eval {
+impl<'a> Eval<'a> {
     fn is_truthy(&self, obj: &Object) -> bool {
         match obj {
             Object::Null(_)    => false,

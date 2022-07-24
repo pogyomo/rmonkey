@@ -1,4 +1,4 @@
-use std::io::{Stdin, stdout, Write};
+use std::{io::{Stdin, stdout, Write}, cell::RefCell, rc::Rc};
 
 use crate::{
     lexer::Lexer,
@@ -24,7 +24,8 @@ impl Repl {
     }
 
     pub fn start(&mut self, kind: ReplExecKind) {
-        let mut env = Env::new();
+        let env = Env::new();
+        let mut eval = Eval::new(Rc::new(RefCell::new(env)));
         loop {
             print!(">> ");
             stdout().flush().unwrap();
@@ -67,7 +68,7 @@ impl Repl {
                     let parser = Parser::new(lexer.tokenize());
                     match parser.parse() {
                         Ok(prg) => {
-                            println!("{}", Eval::new(&mut env).eval(prg).inspect());
+                            println!("{}", eval.eval(prg).inspect());
                         }
                         Err(err) => {
                             eprintln!("{}", err);

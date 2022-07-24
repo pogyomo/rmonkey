@@ -1,4 +1,5 @@
 use crate::{eval::env::Env, ast::{Identifier, BlkStatement, Node}};
+use std::{rc::Rc, cell::RefCell};
 
 pub trait ObjectTrait {
     fn inspect(&self) -> String;
@@ -112,13 +113,13 @@ impl ObjectTrait for ErrorObj {
 
 #[derive(Debug, Clone)]
 pub struct Function {
-    params: Vec<Identifier>,
-    body: BlkStatement,
-    env:  Env,
+    pub params: Vec<Identifier>,
+    pub body: BlkStatement,
+    pub env:  Rc<RefCell<Env>>,
 }
 
 impl Function {
-    pub fn new(params: Vec<Identifier>, body: BlkStatement, env: Env) -> Function {
+    pub fn new(params: Vec<Identifier>, body: BlkStatement, env: Rc<RefCell<Env>>) -> Function {
         Function { params, body, env }
     }
 }

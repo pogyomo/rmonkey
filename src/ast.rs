@@ -317,8 +317,8 @@ impl FunctionExpression {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CallExpression {
-    ident: Box<Expression>, // Identifier or FunctionExpression
-    args:  Vec<Expression>,
+    pub ident: Box<Expression>, // Identifier or FunctionExpression
+    pub args:  Vec<Expression>,
 }
 
 impl Node for CallExpression {
