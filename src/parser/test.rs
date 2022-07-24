@@ -3,12 +3,7 @@
 use crate::{
     lexer::Lexer, 
     parser::Parser, 
-    ast::{
-        Program, Statement, Expression, Identifier, Integer, PrefixExpression,
-        InfixExpression, Boolean, IfExpression, BlkStatement, ExpStatement,
-        FunctionExpression, Node,
-    },
-    token::TokenKind
+    ast::{Program, Statement, Node}
 };
 
 #[test]
@@ -187,33 +182,6 @@ fn test_call_expression() {
 
     let stmt = &program.statements[0];
     test_exp_statement(stmt, "add(10, (a * (10 + b)), (c == d))".to_string());
-}
-
-fn test_let_statement(stmt: &Statement, name: &String) {
-    // Is it let statement?
-    let stmt = match stmt {
-        Statement::Let(stmt) => stmt,
-        _ => panic!("This statement is not LetStatement: got {:?}", stmt),
-    };
-
-    // Is the identifier is same?
-    if stmt.ident.name != *name {
-        panic!("The identifier has different name: expect {}, got {}", name, stmt.ident.name);
-    }
-
-    // TODO
-    eprintln!("TODO: We need to check expression in let statement.");
-}
-
-fn test_ret_statement(stmt: &Statement) {
-    // Is it return statement?
-    match stmt {
-        Statement::Ret(_) => (),
-        _ => panic!("This statement is not RetStatement: got {:?}", stmt),
-    };
-
-    // TODO
-    eprintln!("TODO: We need to check expression in return statement.");
 }
 
 fn test_exp_statement(stmt: &Statement, exp: String) {

@@ -4,9 +4,19 @@ pub trait Node {
     fn string(&self) -> String;
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Program {
     pub statements: Vec<Statement>,
+}
+
+impl Node for Program {
+    fn string(&self) -> String {
+        if self.statements.len() > 1 {
+            self.statements[0].string()
+        } else {
+            String::from("")
+        }
+    }
 }
 
 impl Program {
@@ -15,7 +25,7 @@ impl Program {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Statement {
     Let(LetStatement),
     Ret(RetStatement),
@@ -34,7 +44,7 @@ impl Node for Statement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct LetStatement {
     pub ident:   Identifier,
     pub rhs_exp: Expression, 
@@ -52,7 +62,7 @@ impl LetStatement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RetStatement {
     pub exp: Expression,
 }
@@ -69,7 +79,7 @@ impl RetStatement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ExpStatement {
     pub exp: Expression,
 }
@@ -86,9 +96,9 @@ impl ExpStatement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BlkStatement {
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
 }
 
 impl Node for BlkStatement {
@@ -109,7 +119,7 @@ impl BlkStatement {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
     Ident(Identifier),
     Int(Integer),
@@ -123,8 +133,6 @@ pub enum Expression {
     If(IfExpression),
     Func(FunctionExpression),
     Call(CallExpression),
-
-    Dummy,
 }
 
 impl Node for Expression {
@@ -138,12 +146,11 @@ impl Node for Expression {
             Expression::If(if_exp)     => if_exp.string(),
             Expression::Func(func)     => func.string(),
             Expression::Call(call)     => call.string(),
-            _ => "Dummy".to_string(),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub name: String,
 }
@@ -160,7 +167,7 @@ impl Identifier {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Integer {
     pub value: i64,
 }
@@ -177,7 +184,7 @@ impl Integer {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Boolean {
     pub value: bool,
 }
@@ -197,7 +204,7 @@ impl Boolean {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PrefixExpression {
     pub operator: TokenKind,
     pub rhs_exp: Expression,
@@ -216,7 +223,7 @@ impl PrefixExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct InfixExpression {
     pub operator: TokenKind,
     pub lhs_exp: Expression,
@@ -236,7 +243,7 @@ impl InfixExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct IfExpression {
     pub condition:   Box<Expression>,
     pub consequence: BlkStatement,
@@ -275,7 +282,7 @@ impl IfExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FunctionExpression {
     pub params: Vec<Identifier>,
     pub body:   BlkStatement,
@@ -308,7 +315,7 @@ impl FunctionExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CallExpression {
     ident: Box<Expression>, // Identifier or FunctionExpression
     args:  Vec<Expression>,
