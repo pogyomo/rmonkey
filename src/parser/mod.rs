@@ -9,7 +9,7 @@ use crate::{
     ast::{
         Program, Statement, LetStatement, Identifier, Expression, RetStatement, ExpStatement,
         Integer, PrefixExpression, InfixExpression, Boolean, IfExpression, BlkStatement,
-        FunctionExpression, CallExpression
+        FunctionExpression, CallExpression, StringLiteral
     },
 };
 use self::{error::ParseError, order::PriorityOrder};
@@ -99,6 +99,7 @@ impl<'a> Parser<'a> {
         let mut left = match self.curr_token()?.kind {
             TokenKind::Ident => Expression::Ident(self.identifier()?),
             TokenKind::Int   => Expression::Int(self.integer()?),
+            TokenKind::Str   => Expression::Str(self.string_literal()?),
             TokenKind::True
             | TokenKind::False => Expression::Bool(self.boolean()?),
 
@@ -157,6 +158,16 @@ impl<'a> Parser<'a> {
         };
 
         Ok(Integer::new(value))
+    }
+
+    fn string_literal(&self) -> Result<StringLiteral, Box<dyn Error>> {
+        let token = self.curr_token()?;
+        let value = match token.kind {
+            TokenKind::Str => token.literal(),
+            _ => Err(ParseError::InvalidTokenFound(vec![TokenKind::Str], token.kind))?,
+        };
+
+        Ok(StringLiteral::new(value.to_string()))
     }
 
     fn boolean(&self) -> Result<Boolean, Box<dyn Error>> {

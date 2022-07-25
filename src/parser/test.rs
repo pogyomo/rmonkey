@@ -184,6 +184,17 @@ fn test_call_expression() {
     test_exp_statement(stmt, "add(10, (a * (10 + b)), (c == d))".to_string());
 }
 
+#[test]
+fn test_str_expression() {
+    let input = "\"hello world\";";
+
+    let program = parse_input(input);
+    test_program_length(&program, 1);
+
+    let stmt = &program.statements[0];
+    test_exp_statement(stmt, "\"hello world\"".to_string());
+}
+
 fn test_exp_statement(stmt: &Statement, exp: String) {
     if stmt.string() != exp {
         panic!("The statement has different expression: expect {}, got {}", exp, stmt.string());

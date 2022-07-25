@@ -13,7 +13,9 @@ impl<'a> Token<'a> {
         match self.kind {
             TokenKind::Eof => "eof",
 
-            TokenKind::Ident | TokenKind::Int => self.literal,
+            TokenKind::Ident
+            | TokenKind::Int
+            | TokenKind::Str => self.literal,
 
             TokenKind::Assign        => "=",
             TokenKind::Plus          => "+",
@@ -52,6 +54,7 @@ pub enum TokenKind {
     // Token with literal
     Ident,
     Int,
+    Str,
 
     // One-character token
     Assign,        // '='

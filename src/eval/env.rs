@@ -1,5 +1,5 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use crate::object::Object;
+use super::object::Object;
 
 #[derive(Debug, Clone)]
 pub struct Env {

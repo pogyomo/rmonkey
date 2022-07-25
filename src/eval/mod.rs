@@ -1,11 +1,14 @@
 pub mod env;
+pub mod object;
 
 use crate::{
     ast::{Program, Statement, Expression, IfExpression, CallExpression},
-    object::{Object, Integer, Null, Boolean, ReturnValue, ErrorObj, ObjectTrait, Function},
     token::TokenKind
 };
-use self::env::Env;
+use self::{
+    env::Env,
+    object::{Object, Integer, Null, Boolean, ReturnValue, ErrorObj, ObjectTrait, Function, StringObj, Buildin},
+};
 use std::{cell::RefCell, rc::Rc};
 
 pub struct Eval {
@@ -14,6 +17,14 @@ pub struct Eval {
 
 impl Eval {
     pub fn new(env: Rc<RefCell<Env>>) -> Eval {
+        env.borrow_mut().set(
+            "puts".to_string(),
+            Object::Buildin(Buildin::new(Buildin::print))
+        );
+        env.borrow_mut().set(
+            "exit".to_string(),
+            Object::Buildin(Buildin::new(Buildin::exit))
+        );
         Eval { env }
     }
 
@@ -67,6 +78,7 @@ impl Eval {
             }
             Expression::Int(int)       => Object::Int(Integer::new(int.value)),
             Expression::Bool(bool)     => Object::Bool(Boolean::new(bool.value)),
+            Expression::Str(string)    => Object::Str(StringObj::new(string.str.clone())),
 
             Expression::Prefix(prefix) => {
                 let right = self.expr(prefix.rhs_exp);
@@ -175,6 +187,26 @@ impl Eval {
             };
         }
 
+        if let (Object::Str(left), Object::Str(right)) = (&left, &right) {
+            let left  = &left.str;
+            let right = &right.str;
+            return match op {
+                TokenKind::Plus  => Object::Str(StringObj::new(format!("{}{}", left, right))),
+                TokenKind::Eq    => Object::Bool(Boolean::new(left == right)),
+                TokenKind::NotEq => Object::Bool(Boolean::new(left != right)),
+                _ => {
+                    Object::Err(
+                        ErrorObj::new(
+                            format!(
+                                "Invalid uses of infix operator: {:?} can't applied to {} and {}",
+                                op, left, right
+                            )
+                        )
+                    )
+                }
+            };
+        }
+
         Object::Err(
             ErrorObj::new(
                 format!(
@@ -209,6 +241,7 @@ impl Eval {
 
         let func = match func {
             Object::Func(func) => func,
+            Object::Buildin(b) => return (b.func)(call.args.iter().map(|arg| self.expr(arg.clone())).collect()),
             _ => return Object::Err(ErrorObj::new(format!("{:?} is not a function", func))),
         };
 

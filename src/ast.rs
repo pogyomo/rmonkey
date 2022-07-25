@@ -124,6 +124,7 @@ pub enum Expression {
     Ident(Identifier),
     Int(Integer),
     Bool(Boolean),
+    Str(StringLiteral),
 
     // Without boxing two expression, compiler can't detect the size of Expression.
     Prefix(Box<PrefixExpression>),
@@ -141,6 +142,7 @@ impl Node for Expression {
             Expression::Ident(ident)   => ident.string(),
             Expression::Int(integer)   => integer.string(),
             Expression::Bool(boolean)  => boolean.string(),
+            Expression::Str(string)    => string.string(),
             Expression::Prefix(prefix) => prefix.string(),
             Expression::Infix(infix)   => infix.string(),
             Expression::If(if_exp)     => if_exp.string(),
@@ -201,6 +203,23 @@ impl Node for Boolean {
 impl Boolean {
     pub fn new(value: bool) -> Boolean {
         Boolean { value }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct StringLiteral {
+    pub str: String,
+}
+
+impl Node for StringLiteral {
+    fn string(&self) -> String {
+        format!("\"{}\"", self.str)
+    }
+}
+
+impl StringLiteral {
+    pub fn new(str: String) -> StringLiteral {
+        StringLiteral { str }
     }
 }
 

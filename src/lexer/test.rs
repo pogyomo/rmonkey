@@ -20,7 +20,8 @@ fn test_lexer() {
             return false;
         }
         5 == 5;
-        5 != 10;";
+        5 != 10;
+        \"hello world\";";
 
     let tests = vec![
         Token::new(TokenKind::Let,           ""),    
@@ -105,12 +106,16 @@ fn test_lexer() {
         Token::new(TokenKind::Int,         "10"),
         Token::new(TokenKind::Semicolon,     ""),
 
-        Token::new(TokenKind::Eof,           ""),
+        Token::new(TokenKind::Str, "hello world"),
+        Token::new(TokenKind::Semicolon,     ""),
+
+        Token::new(TokenKind::Eof,            ""),
     ];
 
     let lexer  = Lexer::new(input);
     let tokens = lexer.tokenize();
     if tokens.len() != tests.len() {
+        println!("{:?}", tokens);
         panic!("Number of toknes is different: expect {}, but found {}",
                tests.len(), tokens.len());
     } else {

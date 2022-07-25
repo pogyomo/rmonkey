@@ -3,7 +3,6 @@ mod lexer;
 mod ast;
 mod parser;
 mod repl;
-mod object;
 mod eval;
 
 use std::io::{stdout, Write, stdin};

@@ -3,8 +3,7 @@ use std::{io::{Stdin, stdout, Write}, cell::RefCell, rc::Rc};
 use crate::{
     lexer::Lexer,
     parser::Parser, ast::Node,
-    eval::{Eval, env::Env},
-    object::ObjectTrait
+    eval::{Eval, env::Env, object::ObjectTrait},
 };
 
 pub enum ReplExecKind {

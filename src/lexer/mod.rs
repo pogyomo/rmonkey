@@ -105,10 +105,24 @@ impl <'a> Lexer<'a> {
             ')' => Some(Token::new(TokenKind::RParenthesis,  "")),
             '{' => Some(Token::new(TokenKind::LCurlyBracket, "")),
             '}' => Some(Token::new(TokenKind::RCurlyBracket, "")),
+            '"' => return self.read_string(),
             _   => return None,
         };
         self.input.set(chars.as_str());
         ret
+    }
+
+    fn read_string(&self) -> Option<Token> {
+        // Skip '"'
+        self.skip_char();
+
+        // Read string
+        let ret = self.trim_start_with(|c: char| c != '"');
+
+        // Skip '"'
+        self.skip_char();
+
+        Some(Token::new(TokenKind::Str, ret))
     }
 
     // Take a closure and get trimmed string from begin of self.input
@@ -121,5 +135,11 @@ impl <'a> Lexer<'a> {
         let (ret, other) = input.split_at(sep);
         self.input.set(other);
         ret
+    }
+
+    fn skip_char(&self) {
+        let mut chars = self.input.get().chars();
+        chars.next();
+        self.input.set(chars.as_str());
     }
 }
