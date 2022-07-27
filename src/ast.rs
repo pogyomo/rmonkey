@@ -129,6 +129,7 @@ pub enum Expression {
     // Without boxing two expression, compiler can't detect the size of Expression.
     Prefix(Box<PrefixExpression>),
     Infix(Box<InfixExpression>),
+    Postfix(Box<PostfixExpression>),
 
     // Complex (not C) expression
     If(IfExpression),
@@ -148,6 +149,7 @@ impl Node for Expression {
             Expression::If(if_exp)     => if_exp.string(),
             Expression::Func(func)     => func.string(),
             Expression::Call(call)     => call.string(),
+            Expression::Postfix(post)  => post.string(),
         }
     }
 }
@@ -249,6 +251,12 @@ pub struct InfixExpression {
     pub rhs_exp: Expression,
 }
 
+impl InfixExpression {
+    pub fn new(operator: TokenKind, lhs_exp: Expression, rhs_exp: Expression) -> InfixExpression {
+        InfixExpression { operator, lhs_exp, rhs_exp }
+    }
+}
+
 impl Node for InfixExpression {
     fn string(&self) -> String {
         let token = Token::new(self.operator, "");
@@ -256,9 +264,22 @@ impl Node for InfixExpression {
     }
 }
 
-impl InfixExpression {
-    pub fn new(operator: TokenKind, lhs_exp: Expression, rhs_exp: Expression) -> InfixExpression {
-        InfixExpression { operator, lhs_exp, rhs_exp }
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct PostfixExpression {
+    pub operator: TokenKind,
+    pub lhs_exp: Expression,
+}
+
+impl Node for PostfixExpression {
+    fn string(&self) -> String {
+        let token = Token::new(self.operator, "");
+        format!("({}{})", token.literal(), self.lhs_exp.string())
+    }
+}
+
+impl PostfixExpression {
+    pub fn new(operator: TokenKind, lhs_exp: Expression) -> PostfixExpression {
+        PostfixExpression { operator, lhs_exp }
     }
 }
 

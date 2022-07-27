@@ -93,8 +93,22 @@ impl <'a> Lexer<'a> {
                     Some(Token::new(TokenKind::Bang,  ""))
                 }
             }
-            '+' => Some(Token::new(TokenKind::Plus,          "")),
-            '-' => Some(Token::new(TokenKind::Minus,         "")),
+            '+' => {
+                if self.input.get().chars().nth(1)? == '+' {
+                    chars.next();
+                    Some(Token::new(TokenKind::Inc,   ""))
+                } else {
+                    Some(Token::new(TokenKind::Plus,  ""))
+                }
+            }
+            '-' => {
+                if self.input.get().chars().nth(1)? == '-' {
+                    chars.next();
+                    Some(Token::new(TokenKind::Dec,    ""))
+                } else {
+                    Some(Token::new(TokenKind::Minus,  ""))
+                }
+            }
             '*' => Some(Token::new(TokenKind::Asterisk,      "")),
             '/' => Some(Token::new(TokenKind::Slash,         "")),
             '<' => Some(Token::new(TokenKind::LT,            "")),

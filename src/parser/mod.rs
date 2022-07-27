@@ -9,7 +9,7 @@ use crate::{
     ast::{
         Program, Statement, LetStatement, Identifier, Expression, RetStatement, ExpStatement,
         Integer, PrefixExpression, InfixExpression, Boolean, IfExpression, BlkStatement,
-        FunctionExpression, CallExpression, StringLiteral
+        FunctionExpression, CallExpression, StringLiteral, PostfixExpression
     },
 };
 use self::{error::ParseError, order::PriorityOrder};
@@ -106,7 +106,9 @@ impl<'a> Parser<'a> {
             TokenKind::LParenthesis => self.group()?,
 
             TokenKind::Bang 
-            | TokenKind::Minus => Expression::Prefix(Box::new(self.prefix()?)),
+            | TokenKind::Minus
+            | TokenKind::Inc
+            | TokenKind::Dec => Expression::Prefix(Box::new(self.prefix()?)),
 
             TokenKind::If       => Expression::If(self.if_expression()?),
             TokenKind::Function => Expression::Func(self.func_expression()?),
@@ -130,6 +132,10 @@ impl<'a> Parser<'a> {
                 TokenKind::LParenthesis => {
                     self.next_token();
                     left = Expression::Call(self.call_expression(left)?);
+                }
+                TokenKind::Inc | TokenKind::Dec => {
+                    self.next_token();
+                    left = Expression::Postfix(Box::new(self.postfix(left)?));
                 }
                 _ => {
                     return Ok(left);
@@ -201,6 +207,13 @@ impl<'a> Parser<'a> {
         let right = self.expression(order)?;
 
         Ok(InfixExpression::new(operator, left, right))
+    }
+
+    // expression 'op'
+    fn postfix(&self, left: Expression) -> Result<PostfixExpression, Box<dyn Error>> {
+        let operator = self.curr_token()?.kind;
+
+        Ok(PostfixExpression::new(operator, left))
     }
 
     // '(' expression ')''
@@ -375,6 +388,7 @@ impl<'a> Parser<'a> {
             TokenKind::Plus     | TokenKind::Minus => PriorityOrder::Sum,
             TokenKind::Asterisk | TokenKind::Slash => PriorityOrder::Product,
             TokenKind::LParenthesis                => PriorityOrder::Call,
+            TokenKind::Inc      | TokenKind::Dec   => PriorityOrder::Postfix,
             _ => PriorityOrder::Lowest,
         }
     }

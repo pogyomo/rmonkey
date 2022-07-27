@@ -34,6 +34,8 @@ impl<'a> Token<'a> {
 
             TokenKind::Eq    => "==",
             TokenKind::NotEq => "!=",
+            TokenKind::Inc   => "++",
+            TokenKind::Dec   => "--",
 
             TokenKind::Function => "fn",
             TokenKind::Let      => "let",
@@ -75,6 +77,8 @@ pub enum TokenKind {
     // Two or more character token
     Eq,            // '=='
     NotEq,         // '!='
+    Inc,           // '++',
+    Dec,           // '--'
 
     // Keyword
     Function, // 'fn'

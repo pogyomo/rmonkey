@@ -1,4 +1,4 @@
-use std::{io::{Stdin, stdout, Write}, cell::RefCell, rc::Rc};
+use std::{io::{Stdin, stdout, Write, Read}, cell::RefCell, rc::Rc};
 
 use crate::{
     lexer::Lexer,
@@ -13,6 +13,11 @@ pub enum ReplExecKind {
     Eval,
 }
 
+pub enum ReplInputKind {
+    OneLine,
+    WhileCtrlD,
+}
+
 pub struct Repl {
     cin: Stdin,
 }
@@ -22,7 +27,7 @@ impl Repl {
         Repl { cin }
     }
 
-    pub fn start(&mut self, kind: ReplExecKind) {
+    pub fn start(&mut self, kind_exec: ReplExecKind, kind_input: ReplInputKind) {
         let env = Env::new();
         let mut eval = Eval::new(Rc::new(RefCell::new(env)));
         loop {
@@ -30,10 +35,13 @@ impl Repl {
             stdout().flush().unwrap();
 
             let mut buf = String::new();
-            self.cin.read_line(&mut buf).unwrap();
+            match kind_input {
+                ReplInputKind::OneLine    => self.cin.read_line(&mut buf).unwrap(),
+                ReplInputKind::WhileCtrlD => self.cin.read_to_string(&mut buf).unwrap(),
+            };
             let lexer  = Lexer::new(buf.as_str());
 
-            match kind {
+            match kind_exec {
                 ReplExecKind::Token => {
                     println!("{:#?}", lexer.tokenize());
                 }

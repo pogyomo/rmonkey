@@ -7,4 +7,5 @@ pub enum PriorityOrder {
     Product,     // '*' or '/'
     Prefix,      // '!' or '-'
     Call,        // add(...)
+    Postfix,     // 'hoge++' or 'hoge--'
 }

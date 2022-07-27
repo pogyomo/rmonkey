@@ -101,6 +101,14 @@ impl Eval {
 
                 self.infix(infix.operator, left, right)
             }
+            Expression::Postfix(postfix) => {
+                let right = self.expr(postfix.lhs_exp);
+                if !self.is_error(&right) {
+                    self.postfix(postfix.operator, right)
+                } else {
+                    right
+                }
+            }
 
             Expression::If(if_expr) => {
                 self.if_expr(if_expr)
@@ -116,6 +124,42 @@ impl Eval {
         }
     }
 
+    fn postfix(&self, op: TokenKind, right: Object) -> Object {
+        match op {
+            TokenKind::Inc => {
+                match right {
+                    Object::Int(int) => Object::Int(Integer::new(int.value + 1)),
+                    obj => {
+                        Object::Err(
+                            ErrorObj::new(
+                                format!(
+                                    "Invalid uses of postfix operator: {:?} can't applied to {}",
+                                    op, obj.inspect()
+                                )
+                            )
+                        )
+                    }
+                }
+            }
+            TokenKind::Dec => {
+                match right {
+                    Object::Int(int) => Object::Int(Integer::new(int.value - 1)),
+                    obj => {
+                        Object::Err(
+                            ErrorObj::new(
+                                format!(
+                                    "Invalid uses of postfix operator: {:?} can't applied to {}",
+                                    op, obj.inspect()
+                                )
+                            )
+                        )
+                    }
+                }
+            }
+            _ => Object::Err(ErrorObj::new(format!("Unknown postfix operator: {:?}", op))),
+        }
+    }
+
     fn prefix(&self, op: TokenKind, right: Object) -> Object {
         match op {
             TokenKind::Bang => {
@@ -128,6 +172,36 @@ impl Eval {
             TokenKind::Minus => {
                 match right {
                     Object::Int(int) => Object::Int(Integer::new(-int.value)),
+                    obj => {
+                        Object::Err(
+                            ErrorObj::new(
+                                format!(
+                                    "Invalid uses of prefix operator: {:?} can't applied to {}",
+                                    op, obj.inspect()
+                                )
+                            )
+                        )
+                    }
+                }
+            }
+            TokenKind::Inc => {
+                match right {
+                    Object::Int(int) => Object::Int(Integer::new(int.value + 1)),
+                    obj => {
+                        Object::Err(
+                            ErrorObj::new(
+                                format!(
+                                    "Invalid uses of prefix operator: {:?} can't applied to {}",
+                                    op, obj.inspect()
+                                )
+                            )
+                        )
+                    }
+                }
+            }
+            TokenKind::Dec => {
+                match right {
+                    Object::Int(int) => Object::Int(Integer::new(int.value - 1)),
                     obj => {
                         Object::Err(
                             ErrorObj::new(
